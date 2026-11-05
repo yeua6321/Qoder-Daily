@@ -1,5 +1,24 @@
 # 更新日志
 
+## v1.0.13（2026-11-04）
+
+- 文档发行版：同步首屏使用边界、反收费/反搬运声明、`NOTICE.md`、微信/支付宝赞赏码防诈骗提醒与六语导航。
+- Release 完整包现在包含最新 README、NOTICE、docs 与图片资产；签到/领取主逻辑未变更，脚本版本仍为 `v1.0.12`。
+- 验证：Markdown 渲染、相对链接、二维码资产与发布包清单检查通过；本版未使用真实账号执行签到。
+
+## v1.0.12（2026-10-31）
+
+- 对齐 3.3.0-beta.6 的 Qoder 每日积分窗口行为：活动窗口 10:00 开启后，若上游暂未下发，重试窗口从 30 分钟放宽到 1 小时。
+- 默认重试间隔从 90 秒改为 10 分钟，最多 6 次，避免高频重试触发风控；`QODER_WINDOW_RETRY_GAP` / `QODER_WINDOW_RETRY_MAX` 仍可覆盖。
+
+## v1.0.11（2026-10-29）
+
+- 修正额度类 403 与凭证失效混判：HTTP 403 响应含 `pricingUrl` 或业务码 `112` 时按「额度耗尽」处理，账号冷却 30 分钟，不再触发 token 续期，也不按登录失败上报。
+- 业务码 `110` / `Billing daily count exceeded` 按「每日计费次数上限」处理，冷却到本地零点，封顶 6 小时（最低 60 秒）。
+- `auth_dead_response` 只在非额度类 401/403 或业务码 `105` / `10019901001` 时判为会话失效；成功活动列表与 claim 路径保持不变。
+- 新增 5 项离线回归测试，覆盖 `112`、`pricingUrl`、`110` 冷却边界、普通 401/403 与额度 403 不触发续期；测试总数 33 项。
+- 实证来源：[shuishuipingan/qoder2api-hub@1033662b](https://github.com/shuishuipingan/qoder2api-hub/commit/1033662b)，对应上游 `v1.7.9`。
+
 ## v1.0.10（2026-10-23）
 
 - 跟进 Qoder CN 活动列表按请求头分桶的下发异常：完整设备头返回 HTTP 200 + `showCampaign:false` / `campaigns:[]` 时，改用 `Authorization`、`Cosy-ClientType`、`User-Agent`、`Content-Type` 四件套复取一次。

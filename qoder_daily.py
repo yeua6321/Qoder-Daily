@@ -39,7 +39,7 @@
    WECOM_WEBHOOK   企微群机器人地址或 key（可选）
    DINGTALK_WEBHOOK  钉钉机器人 webhook（可选）
    DINGTALK_SECRET   钉钉加签密钥（可选）
-   QODER_WINDOW_RETRY  【可选】10:00-10:30 CST 内暂未下发时按 90 秒重试（默认 1）
+QODER_WINDOW_RETRY  【可选】10:00-11:00 CST 内暂未下发时按 10 分钟重试（默认 1）
 
 ⌨️ 命令
    python qoder_daily.py                 正常签到
@@ -56,6 +56,7 @@ import io
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import tarfile
@@ -95,6 +96,9 @@ CLAIM_FAILURE_TEXT = {
     "RISK_BLOCKED": "设备风控未通过",
     "RISK_DEPENDENCY_UNAVAILABLE": "设备风控依赖暂不可用",
 }
+QUOTA_112_COOLDOWN = 30 * 60
+QUOTA_110_MAX_COOLDOWN = 6 * 60 * 60
+QUOTA_110_MIN_COOLDOWN = 60
 
 ONLY = None
 REFRESH_ONLY = False
@@ -632,10 +636,39 @@ def refresh_account(account):
     return True
 
 
+def quota_cooldown(response, now=None):
+    """额度类 403 的 (病因, 冷却秒数)；不是额度问题返回 ("", 0)。
+
+    上游对「额度耗尽」和「每日计费次数上限」也回 403，与凭证被拒同码不同因：
+    112 / pricingUrl -> 30 分钟；110 / Billing daily count exceeded -> 到本地
+    零点，封顶 6 小时。响应体可能被日志转义，先去掉反斜杠再匹配。
+    """
+    payload = json_of(response)
+    text = json.dumps(payload, ensure_ascii=False) if isinstance(payload, (dict, list)) else ""
+    text = (text + " " + str(getattr(response, "text", "") or "")).replace("\\", "")
+    if "pricingUrl" in text or re.search(r'"code"\s*:\s*"?112\b', text):
+        return "exhausted", QUOTA_112_COOLDOWN
+    if "Billing daily count exceeded" in text or re.search(r'"code"\s*:\s*"?110\b', text):
+        current = time.time() if now is None else float(now)
+        local = datetime.fromtimestamp(current)
+        midnight = datetime(local.year, local.month, local.day) + timedelta(days=1)
+        seconds = int((midnight - local).total_seconds())
+        return "daily", max(QUOTA_110_MIN_COOLDOWN,
+                            min(QUOTA_110_MAX_COOLDOWN, seconds))
+    return "", 0
+
+
+def quota_cooldown_message(kind, seconds):
+    if kind == "exhausted":
+        return "额度已耗尽（112 / pricingUrl），账号冷却 30 分钟；请充值或更换账号"
+    until = time.strftime("%m-%d %H:%M", time.localtime(time.time() + seconds))
+    return "每日计费次数已达上限（110），账号冷却至 %s（最长 6 小时）；请稍后或更换账号" % until
+
+
 def auth_dead_response(response):
     """HTTP 401/403 或已知业务码表示会话已失效，需要立即强制续期。"""
     if response.status_code in (401, 403):
-        return True
+        return quota_cooldown(response)[0] == ""
     payload = json_of(response)
     if not isinstance(payload, dict):
         return False
@@ -824,11 +857,15 @@ def daily_window_retry_enabled():
 
 def daily_window_active():
     now = datetime.now(CN_TZ)
-    return now.hour == 10 and now.minute < 30
+    # 官方窗口 10:00 开启；上游可能延迟到 11:00 前才下发，重试窗口同步放宽到 1 小时。
+    return now.hour == 10
 
 
 def fetch_campaign_rows(account):
     response, risk_note = fetch_campaigns(account)
+    quota_kind, quota_seconds = quota_cooldown(response)
+    if quota_kind:
+        return [], response, risk_note, quota_cooldown_message(quota_kind, quota_seconds)
     if response.status_code in (401, 403):
         return [], response, risk_note, "签到活动查询失败（HTTP %s），请确认凭证有效且地区选择正确" % response.status_code
     if auth_dead_response(response):
@@ -879,13 +916,13 @@ def do_checkin(account):
     if (target is None and not claimed and daily_window_retry_enabled()
             and daily_window_active()):
         try:
-            max_attempts = min(16, max(1, int(_env("QODER_WINDOW_RETRY_MAX") or "16")))
+            max_attempts = min(6, max(1, int(_env("QODER_WINDOW_RETRY_MAX") or "6")))
         except ValueError:
-            max_attempts = 16
+            max_attempts = 6
         try:
-            gap = max(1, int(_env("QODER_WINDOW_RETRY_GAP") or "90"))
+            gap = max(1, int(_env("QODER_WINDOW_RETRY_GAP") or "600"))
         except ValueError:
-            gap = 90
+            gap = 600
         for _attempt in range(max_attempts):
             if not daily_window_active():
                 break
