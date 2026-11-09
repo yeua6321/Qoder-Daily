@@ -14,7 +14,7 @@ Qoder Daily는 현재 제공되는 혜택 캠페인을 읽고 Qoder 중국판과
 
 ## 핵심 기능
 
-- 중국판과 글로벌판의 `CLAIM_BENEFIT` 캠페인을 수령합니다.
+- 일일 Credits로 분류된 캠페인만 수령하며 모델 한정, Sonus, SOTA 혜택은 제외합니다.
 - Qoder CN / `qoderclicn`과 Qoder / `qodercli` 기기 ID를 분리합니다.
 - 베이징 시간 10:00-11:00 캠페인 창에서 재시도합니다.
 - refresh token을 교체하고 실행 간 상태를 복원합니다.
@@ -87,7 +87,7 @@ workflow는 `qoder_tokens.json`과 `qoder_machine_id`를 묶고 `QODER_CACHE_KEY
 | 변수 | 형식 또는 기본값 | 설명 |
 | :--- | :--- | :--- |
 | `QODER_TOKENS` | `access` / `access\|refresh` / `메모\|access\|refresh` | 중국판 계정 |
-| `QODER_GLOBAL_TOKENS` | 같은 형식, 선택적으로 `\|uid` 추가 | 글로벌판 계정 |
+| `QODER_GLOBAL_TOKENS` | 같은 형식, 선택적으로 `\|uid` 추가 | 글로벌판 계정. UID는 생략할 수 있으며 스크립트가 캠페인 목록에서 자동으로 읽습니다. |
 | `QODER_MACHINE_TOKEN` / `QODER_MACHINE_CODE` / `QODER_MACHINE_TYPE` | 세 값 | 수동 기기 ID |
 | `QODERCN_RUNTIME_INFO` | 경로 | 중국판 runtime-info |
 | `QODER_RUNTIME_INFO` | 경로 | 글로벌판 runtime-info |

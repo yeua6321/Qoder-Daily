@@ -14,7 +14,7 @@ Qoder Daily 會讀取目前下發的權益活動，為 Qoder 中國版與國際�
 
 ## 核心能力
 
-- 為中國版與國際版領取 `CLAIM_BENEFIT` 活動。
+- 只領取分類為每日 Credits 的活動，排除限定模型、Sonus 與 SOTA 權益。
 - 分離 Qoder CN / `qoderclicn` 與 Qoder / `qodercli` 裝置身份。
 - 在北京時間 10:00-11:00 活動視窗內補拉。
 - 輪換 refresh token，並跨執行恢復狀態。
@@ -87,7 +87,7 @@ schedule:
 | 變數 | 格式或預設 | 說明 |
 | :--- | :--- | :--- |
 | `QODER_TOKENS` | `access` / `access\|refresh` / `備註\|access\|refresh` | 中國版帳號 |
-| `QODER_GLOBAL_TOKENS` | 同上，可再追加 `\|uid` | 國際版帳號 |
+| `QODER_GLOBAL_TOKENS` | 同上，可再追加 `\|uid` | 國際版帳號；UID 可省略，腳本會從活動列表自動讀取。 |
 | `QODER_MACHINE_TOKEN` / `QODER_MACHINE_CODE` / `QODER_MACHINE_TYPE` | 三個值 | 手動裝置身份 |
 | `QODERCN_RUNTIME_INFO` | 路徑 | 中國版 runtime-info 元件 |
 | `QODER_RUNTIME_INFO` | 路徑 | 國際版 runtime-info 元件 |

@@ -14,7 +14,7 @@ Qoder Daily は現在配信されている特典キャンペーンを読み取�
 
 ## 主な機能
 
-- 中国版と国際版の `CLAIM_BENEFIT` キャンペーンを取得します。
+- 毎日 Credits と判定したキャンペーンだけを取得し、モデル限定・Sonus・SOTA の特典は除外します。
 - Qoder CN / `qoderclicn` と Qoder / `qodercli` の ID を分離します。
 - 北京時間 10:00-11:00 のキャンペーン時間帯で再試行します。
 - refresh token をローテーションし、実行間で状態を復元します。
@@ -87,7 +87,7 @@ workflow は `qoder_tokens.json` と `qoder_machine_id` をまとめ、`QODER_CA
 | 変数 | 形式または既定値 | 説明 |
 | :--- | :--- | :--- |
 | `QODER_TOKENS` | `access` / `access\|refresh` / `メモ\|access\|refresh` | 中国版アカウント |
-| `QODER_GLOBAL_TOKENS` | 同形式、必要なら `\|uid` を追加 | 国際版アカウント |
+| `QODER_GLOBAL_TOKENS` | 同形式、必要なら `\|uid` を追加 | 国際版アカウント。UID は省略可能で、スクリプトがキャンペーン一覧から自動取得します。 |
 | `QODER_MACHINE_TOKEN` / `QODER_MACHINE_CODE` / `QODER_MACHINE_TYPE` | 3 つの値 | 手動デバイス ID |
 | `QODERCN_RUNTIME_INFO` | パス | 中国版 runtime-info |
 | `QODER_RUNTIME_INFO` | パス | 国際版 runtime-info |
