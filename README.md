@@ -6,6 +6,8 @@
 
 **Qoder 中国版 / 国际版每日奖励领取工具，支持设备授权登录、双地区 UMID、多账号与 Token 轮换恢复。**
 
+> 当前版本：**v1.0.22**（2026-11-13） · 最新更新：每日签到前后回读主额度、加购额度与资源包额度
+
 [简体中文](README.md) · [English](docs/README.en.md) · [繁體中文](docs/README.zh-Hant.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md) · [Português (BR)](docs/README.pt-BR.md)
 
 <img src="https://img.shields.io/github/v/release/L0NE-6/Qoder-Daily?style=for-the-badge&label=Release&color=2ea44f&logo=github" />
@@ -135,7 +137,7 @@ access_token|refresh_token
 | :--- | :---: | :--- |
 | `QODER_TOKENS` | 中国版必填 | 中国版账号。 |
 | `QODER_GLOBAL_TOKENS` | 国际版必填 | 国际版账号。 |
-| `QODER_CACHE_KEY` | 建议必填 | 加密 Actions 中 `qoder_tokens.json` 与 `qoder_machine_id` 的随机长字符串。 |
+| `QODER_CACHE_KEY` | Actions 必填 | 加密 Actions 中 `qoder_tokens.json` 与 `qoder_machine_id` 的随机长字符串；未配置时 workflow 会直接失败，不运行账号。 |
 | `QODER_MACHINE_TOKEN` / `QODER_MACHINE_CODE` / `QODER_MACHINE_TYPE` | 条件必填 | 没有本地 runtime-info 时提供设备身份三件套。 |
 | `QODERCN_RUNTIME_INFO` / `QODER_RUNTIME_INFO` / `QODER_UMID_PATH` | ➖ | 分别覆盖中国版 / 国际版 / 通用组件路径。 |
 | `QODER_UMID_NO_INSTALL` | ➖ | 设为 `1` 时禁止从官方包自动提取身份。 |
@@ -188,7 +190,7 @@ QODER_WINDOW_RETRY_GAP: "90"
 
 - workflow 会把 `qoder_tokens.json` 与 `qoder_machine_id` 打包，用 `QODER_CACHE_KEY` 执行 AES-256-CBC / PBKDF2 加密后写入 Actions cache。
 - 每轮并发的 Action 使用独立 cache key，并通过共同前缀恢复最新状态。
-- 没有 `QODER_CACHE_KEY` 时，workflow 会告警并跳过持久化；本轮仍可签到，但轮换后的 refresh_token 可能无法在下一轮恢复。
+- 没有 `QODER_CACHE_KEY` 时，workflow 会在运行前直接失败，避免设备码漂移和账号风控；不会向账号发起签到请求。先在 Secrets 配好稳定密钥，再重跑。
 - Cache 可能被淘汰或清理；状态丢失且旧 refresh_token 已失效时需要重新授权。
 
 ## 🔧 环境变量
@@ -246,7 +248,7 @@ QODER_WINDOW_RETRY_GAP: "90"
 - 国际版不启用该最小头复取。
 - 国际版 claim 需要完整设备风控头和 JSON body；最小鉴权头 + 空 body 会返回 `409 INTERNAL_ERROR`。
 - 同一设备身份下当日已有其他账号领取时，claim 返回 `200 + status=BLOCKED`、`failureCode=SAME_PERSON_ALREADY_CLAIMED`，脚本报告“同一设备身份下的其他账号已领取”，不计为成功。
-- 领取成功后按上游活动数据报告 Credits；实际额度变化可从 usage / quota 路径核对时再报告增量。
+- 每日 claim 前后读取账户总剩余额度；只有确认额度增加才报告成功，回读不可用或未增加时显示“已受理待确认”。
 - Pro 活动只在 campaigns 中真实出现或 `/reward` 只读核对面值后才尝试，不承诺固定 `+1800`。
 - 窗口未开、身份缺失或没有活动行时不写入“已签”状态，后续轮次可继续补拉。
 
@@ -323,7 +325,7 @@ QODER_WINDOW_RETRY_GAP: "90"
 <details>
 <summary><b>Actions 恢复不到最新 Token</b></summary>
 
-检查 `QODER_CACHE_KEY` 是否配置且跨运行保持一致，cache 是否被清理，以及同一前缀下是否有可恢复状态。没有 cache 时，原始 Secret 中的旧 refresh_token 可能已经失效。
+检查 `QODER_CACHE_KEY` 是否配置且跨运行保持一致，cache 是否被清理，以及同一前缀下是否有可恢复状态。没有 cache 时，原始 Secret 中的旧 refresh_token 可能已经失效；如果上游已经按新设备身份拒绝旧 RT，请用 `qoder_login.py` 重新登录并更新 `QODER_TOKENS`。
 </details>
 
 <details>
@@ -334,7 +336,7 @@ QODER_WINDOW_RETRY_GAP: "90"
 
 ## 📦 版本与发布
 
-- 当前发布版：`v1.0.21`（2026-11-11，账号 2 固定主机名与设备身份边界修正）。
+- 当前发布版：`v1.0.22`（2026-11-12，每日签到额度前后回读确认）。
 - 历史版本保留在 [Releases](https://github.com/L0NE-6/Qoder-Daily/releases)。
 - 每个 Release 附带完整包、单文件脚本与 `SHA256SUMS.txt`。
 - 更新记录见 [CHANGELOG.md](CHANGELOG.md)。
